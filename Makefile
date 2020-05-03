@@ -1,7 +1,7 @@
 .PHONY: all check clean
 TARGET = sehttpd
 GIT_HOOKS := .git/hooks/applied
-all: $(GIT_HOOKS) $(TARGET)
+all: $(GIT_HOOKS) $(TARGET) htstress
 
 $(GIT_HOOKS):
 	@scripts/install-git-hooks
@@ -37,8 +37,18 @@ $(TARGET): $(OBJS)
 check: all
 	@scripts/test.sh
 
+perf_stress: htstress
+	./htstress -n 1 -c 1 -t 1 http://127.0.0.1:8081
+
+CFLAGS_user = -std=gnu99 -Wall -Wextra -Werror -g
+LDFLAGS_user = -lpthread
+
+htstress: htstress.c
+	$(CC) $(CFLAGS_user) -o $@ $< $(LDFLAGS_user)
+
 clean:
 	$(VECHO) "  Cleaning...\n"
 	$(Q)$(RM) $(TARGET) $(OBJS) $(deps)
 
 -include $(deps)
+
