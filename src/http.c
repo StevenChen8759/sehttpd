@@ -6,6 +6,7 @@
 #include <sys/epoll.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "http.h"
@@ -123,6 +124,8 @@ static void do_error(int fd,
 
     writen(fd, header, strlen(header));
     writen(fd, body, strlen(body));
+
+    // debug("Error Msg Response Sent");
 }
 
 static const char *get_file_type(const char *type)
@@ -229,8 +232,14 @@ void do_request(void *ptr)
         size_t remain_size =
             MIN(MAX_BUF - (r->last - r->pos) - 1, MAX_BUF - r->last % MAX_BUF);
 
+        // clock_t tvs, tve;
+        // tvs = clock();
+
         int n = read(fd, plast, remain_size);
         assert(r->last - r->pos < MAX_BUF && "request buffer overflow!");
+
+        // tve = clock();
+        // debug("Read cost: %ld clocks", (tve - tvs));
 
         if (n == 0) /* EOF */
             goto err;
@@ -280,12 +289,20 @@ void do_request(void *ptr)
         struct stat sbuf;
         if (stat(filename, &sbuf) < 0) {
             do_error(fd, filename, "404", "Not Found", "Can't find the file");
-            continue;
+
+            // 404 not found, close connection
+            free(out);
+            debug("404 Not Found, close connection");
+            goto close;
         }
 
         if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) {
             do_error(fd, filename, "403", "Forbidden", "Can't read the file");
-            continue;
+
+            // 403 forbidden, close connection
+            free(out);
+            debug("403 Forbidden, close connection");
+            goto close;
         }
 
         out->mtime = sbuf.st_mtime;
