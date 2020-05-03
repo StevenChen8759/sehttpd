@@ -516,13 +516,11 @@ int main(int argc, char *argv[])
     if (!host)
         host = node;
     outbufsize = sizeof(HTTP_REQUEST_FMT) + strlen(host);
-    if (rq != NULL) {
-        outbufsize += strlen(rq);
-    }
+    outbufsize += rq ? strlen(rq) : 1;  // if rq is NULL, input '/' instead
 
     outbuf = malloc(outbufsize);
     outbufsize = rq ? snprintf(outbuf, outbufsize, HTTP_REQUEST_FMT, rq, host)
-                    : snprintf(outbuf, outbufsize, HTTP_REQUEST_FMT, "", host);
+                    : snprintf(outbuf, outbufsize, HTTP_REQUEST_FMT, "/", host);
 
     ticks = max_requests / 10;
 
