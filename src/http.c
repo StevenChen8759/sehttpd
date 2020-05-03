@@ -82,6 +82,7 @@ static void parse_uri(char *uri, int uri_length, char *filename)
         return;
     }
 
+    /* TODO: improve safety of string processing (strcpy is dangerous) */
     strcpy(filename, webroot);
     debug("before strncat, filename = %s, uri = %.*s, file_len = %d", filename,
           file_length, uri, file_length);
@@ -306,8 +307,7 @@ void do_request(void *ptr)
     }
 
     struct epoll_event event = {
-        .data.ptr = ptr,
-        .events = EPOLLIN | EPOLLET | EPOLLONESHOT,
+        .data.ptr = ptr, .events = EPOLLIN | EPOLLET | EPOLLONESHOT,
     };
     epoll_ctl(r->epfd, EPOLL_CTL_MOD, r->fd, &event);
 
