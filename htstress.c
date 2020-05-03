@@ -522,7 +522,7 @@ int main(int argc, char *argv[])
 
     outbuf = malloc(outbufsize);
     outbufsize = rq ? snprintf(outbuf, outbufsize, HTTP_REQUEST_FMT, rq, host)
-                    : snprintf(outbuf, outbufsize, HTTP_REQUEST_FMT, "", host);
+                    : snprintf(outbuf, outbufsize, HTTP_REQUEST_FMT, "/", host);
 
     ticks = max_requests / 10;
 
