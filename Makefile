@@ -37,8 +37,8 @@ $(TARGET): $(OBJS)
 check: all
 	@scripts/test.sh
 
-perf_stress: htstress
-	./htstress -n 1 -c 1 -t 1 http://127.0.0.1:8081
+strperf: htstress
+	./htstress -n 100000 -c 4 -t 4 http://127.0.0.1:8081$(URI)
 
 CFLAGS_user = -std=gnu99 -Wall -Wextra -Werror -g
 LDFLAGS_user = -lpthread
