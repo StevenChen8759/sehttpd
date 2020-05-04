@@ -100,8 +100,7 @@ int main()
     init_http_request(request, listenfd, epfd, WEBROOT);
 
     struct epoll_event event = {
-        .data.ptr = request,
-        .events = EPOLLIN | EPOLLET,
+        .data.ptr = request, .events = EPOLLIN | EPOLLET,
     };
     epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &event);
 
@@ -160,7 +159,7 @@ int main()
                     continue;
                 }
 
-                do_request(events[i].data.ptr);
+                http_do_request(events[i].data.ptr);
             }
         }
     }

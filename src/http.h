@@ -89,8 +89,7 @@ static inline void init_http_request(http_request_t *r,
     INIT_LIST_HEAD(&(r->list));
 }
 
-/* TODO: public functions should have conventions to prefix http_ */
-void do_request(void *infd);
+void http_do_request(void *infd);
 
 int http_parse_request_line(http_request_t *r);
 int http_parse_request_body(http_request_t *r);
