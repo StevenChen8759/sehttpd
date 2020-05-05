@@ -4,18 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/epoll.h>
-
-// Selectable mmap() and sendfile() for perf.
-#if 0
-
-#include <sys/mman.h>
-
-#else
-
 #include <sys/sendfile.h>
-
-#endif
-
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -210,18 +199,8 @@ static void serve_static(int fd,
 
     int srcfd = open(filename, O_RDONLY, 0);
     assert(srcfd > 2 && "open error");
-/* TODO: use sendfile(2) for zero-copy support */
+    /* TODO: make sendfile() error handling function complete */
 
-#if 0
-    char *srcaddr = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
-    assert(srcaddr != (void *) -1 && "mmap error");
-    close(srcfd);
-
-    writen(fd, srcaddr, filesize);
-
-    munmap(srcaddr, filesize);
-
-#else
     int retn = sendfile(fd, srcfd, NULL, filesize);
     if (retn != 0) {
         printf("sendfile error, errno: %d", errno);
@@ -229,7 +208,6 @@ static void serve_static(int fd,
     }
 
     close(srcfd);
-#endif
 }
 
 static inline int init_http_out(http_out_t *o, int fd)
