@@ -8,6 +8,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "http.h"
 #include "logger.h"
@@ -17,6 +18,24 @@
 #define MAXEVENTS 1024
 
 #define LISTENQ 1024
+
+static const char short_options[] = "p:r:h";
+
+static const struct option long_options[] = {{"port", 1, NULL, 'p'},
+                                             {"root_web", 1, NULL, 'r'},
+                                             {"help", 0, NULL, 'h'},
+                                             {NULL, 0, NULL, 0}};
+
+static void print_usage()
+{
+    printf(
+        "Usage: sehttpd [options]\n"
+        "Options:\n"
+        "   -p, --number   Assign Server Port Number. Default: 8081\n"
+        "   -r, --root_web Assign Root of Server. Default: ./www\n"
+        "   -h, --help     display this message\n");
+    exit(0);
+}
 
 static int open_listenfd(int port)
 {
@@ -73,8 +92,37 @@ static int sock_set_non_blocking(int fd)
 #define PORT 8081
 #define WEBROOT "./www"
 
-int main()
+int main(int argc, char *argv[])
 {
+    char *param_webroot = WEBROOT;
+    int param_port = PORT;
+
+    int next_option;
+    do {
+        next_option =
+            getopt_long(argc, argv, short_options, long_options, NULL);
+
+        switch (next_option) {
+        case 'p':
+            param_port = atoi(optarg);
+            break;
+        case 'r':
+            param_webroot = optarg;
+            // TODO: Check web root existence
+            break;
+        case 'h':
+            print_usage();
+            break;
+        case -1:
+            break;
+        default:
+            printf("Unexpected argument: '%c'\n", next_option);
+            return 1;
+        }
+    } while (next_option != -1);
+
+    printf("Port: %d, WebRoot: %s\n", param_port, param_webroot);
+
     /* when a fd is closed by remote, writing to this fd will cause system
      * send SIGPIPE to this process, which exit the program
      */
