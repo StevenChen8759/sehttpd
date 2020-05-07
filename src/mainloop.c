@@ -8,6 +8,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "http.h"
 #include "logger.h"
@@ -17,6 +18,24 @@
 #define MAXEVENTS 1024
 
 #define LISTENQ 1024
+
+static const char short_options[] = "p:r:h";
+
+static const struct option long_options[] = {{"port", 1, NULL, 'p'},
+                                             {"root_web", 1, NULL, 'r'},
+                                             {"help", 0, NULL, 'h'},
+                                             {NULL, 0, NULL, 0}};
+
+static void print_usage()
+{
+    printf(
+        "Usage: sehttpd [options]\n"
+        "Options:\n"
+        "   -p, --number   Assign Server Port Number. Default: 8081\n"
+        "   -r, --root_web Assign Root of Server. Default: ./www\n"
+        "   -h, --help     display this message\n");
+    exit(0);
+}
 
 static int open_listenfd(int port)
 {
@@ -73,8 +92,37 @@ static int sock_set_non_blocking(int fd)
 #define PORT 8081
 #define WEBROOT "./www"
 
-int main()
+int main(int argc, char *argv[])
 {
+    char *param_webroot = NULL;
+    int param_port = PORT;
+
+    int next_option;
+    do {
+        next_option =
+            getopt_long(argc, argv, short_options, long_options, NULL);
+
+        switch (next_option) {
+        case 'p':
+            param_port = atoi(optarg);
+            break;
+        case 'r':
+            param_webroot = optarg;
+            break;
+        case 'h':
+            print_usage();
+            break;
+        case -1:
+            break;
+        default:
+            printf("Unexpected argument: '%c'\n", next_option);
+            return 1;
+        }
+    } while (next_option != -1);
+
+    printf("Port: %d, WebRoot: %s\n", param_port,
+           param_webroot ? param_webroot : WEBROOT);
+
     /* when a fd is closed by remote, writing to this fd will cause system
      * send SIGPIPE to this process, which exit the program
      */
@@ -85,7 +133,7 @@ int main()
         return 0;
     }
 
-    int listenfd = open_listenfd(PORT);
+    int listenfd = open_listenfd(param_port);
     int rc UNUSED = sock_set_non_blocking(listenfd);
     assert(rc == 0 && "sock_set_non_blocking");
 
@@ -97,7 +145,9 @@ int main()
     assert(events && "epoll_event: malloc");
 
     http_request_t *request = malloc(sizeof(http_request_t));
-    init_http_request(request, listenfd, epfd, WEBROOT);
+    init_http_request(request, listenfd, epfd,
+                      param_webroot ? param_webroot : WEBROOT);
+    // NOTE: NULL param_webroot assign default value automatically
 
     struct epoll_event event = {
         .data.ptr = request, .events = EPOLLIN | EPOLLET,
@@ -143,7 +193,8 @@ int main()
                         break;
                     }
 
-                    init_http_request(request, infd, epfd, WEBROOT);
+                    init_http_request(request, infd, epfd,
+                                      param_webroot ? param_webroot : WEBROOT);
                     event.data.ptr = request;
                     event.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
                     epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
