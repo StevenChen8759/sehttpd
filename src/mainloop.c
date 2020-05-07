@@ -94,7 +94,7 @@ static int sock_set_non_blocking(int fd)
 
 int main(int argc, char *argv[])
 {
-    char *param_webroot = WEBROOT;
+    char *param_webroot = NULL;
     int param_port = PORT;
 
     int next_option;
@@ -108,7 +108,6 @@ int main(int argc, char *argv[])
             break;
         case 'r':
             param_webroot = optarg;
-            // TODO: Check web root existence
             break;
         case 'h':
             print_usage();
@@ -121,7 +120,8 @@ int main(int argc, char *argv[])
         }
     } while (next_option != -1);
 
-    printf("Port: %d, WebRoot: %s\n", param_port, param_webroot);
+    printf("Port: %d, WebRoot: %s\n", param_port,
+           param_webroot ? param_webroot : WEBROOT);
 
     /* when a fd is closed by remote, writing to this fd will cause system
      * send SIGPIPE to this process, which exit the program
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    int listenfd = open_listenfd(PORT);
+    int listenfd = open_listenfd(param_port);
     int rc UNUSED = sock_set_non_blocking(listenfd);
     assert(rc == 0 && "sock_set_non_blocking");
 
@@ -145,7 +145,9 @@ int main(int argc, char *argv[])
     assert(events && "epoll_event: malloc");
 
     http_request_t *request = malloc(sizeof(http_request_t));
-    init_http_request(request, listenfd, epfd, WEBROOT);
+    init_http_request(request, listenfd, epfd,
+                      param_webroot ? param_webroot : WEBROOT);
+    // NOTE: NULL param_webroot assign default value automatically
 
     struct epoll_event event = {
         .data.ptr = request, .events = EPOLLIN | EPOLLET,
@@ -191,7 +193,8 @@ int main(int argc, char *argv[])
                         break;
                     }
 
-                    init_http_request(request, infd, epfd, WEBROOT);
+                    init_http_request(request, infd, epfd,
+                                      param_webroot ? param_webroot : WEBROOT);
                     event.data.ptr = request;
                     event.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
                     epoll_ctl(epfd, EPOLL_CTL_ADD, infd, &event);
