@@ -199,12 +199,22 @@ static void serve_static(int fd,
 
     int srcfd = open(filename, O_RDONLY, 0);
     assert(srcfd > 2 && "open error");
-    /* TODO: make sendfile() error handling function complete */
 
-    int retn = sendfile(fd, srcfd, NULL, filesize);
+    int retn;
+
+sendfile_again:
+    retn = sendfile(fd, srcfd, NULL, filesize);
+
+    // Process with sendfile error
     if (retn != 0) {
-        printf("sendfile error, errno: %d", errno);
-        assert("sendfile error");
+        // Socket Write Buffer Full, Call sendfile again...
+        if (errno == EAGAIN)
+            goto sendfile_again;
+
+        /* TODO: make sendfile() error handling function complete */
+        /* TODO: make socket error handling function complete */
+        // printf("sendfile error, errno: %d\n", errno);
+        // assert(retn==0 && "sendfile error");
     }
 
     close(srcfd);
